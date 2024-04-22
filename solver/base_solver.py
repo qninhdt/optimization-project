@@ -60,16 +60,7 @@ class BaseSolver:
         Returns:
             bool: True if the solution is valid, False otherwise
         """
-        for clause in sample["clauses"]:
-            if not any(
-                [
-                    solution[abs(v) - 1] if v > 0 else not solution[abs(v) - 1]
-                    for v in clause
-                ]
-            ):
-                return False
-
-        return True
+        return self.count_satisfied_clauses(sample, solution) == sample["n_clauses"]
 
     def solve_dataset(self, dataset: Dict) -> List[List[bool]]:
         print(f"> Solving dataset {dataset['name']}")

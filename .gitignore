@@ -1,2 +1,6 @@
+.vscode
+*.dll
+*.so
+*.so.lock
 __pycache__
 datasets
