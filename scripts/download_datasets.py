@@ -19,10 +19,10 @@ DATASETS = [
 DATASET_URL = "https://www.cs.ubc.ca/~hoos/SATLIB/Benchmarks/SAT/RND3SAT/{}.tar.gz"
 
 # remove existing datasets folder
-if os.path.exists("datasets"):
-    shutil.rmtree("datasets")
+if os.path.exists("../datasets"):
+    shutil.rmtree("../datasets")
 
-os.makedirs("datasets")
+os.makedirs("../datasets")
 
 # download datasets and extract them
 for dataset in DATASETS:
@@ -38,7 +38,7 @@ for dataset in DATASETS:
     with tarfile.open(filename, "r:gz") as tar:
         tar.extractall("datasets/{}".format(dataset))
 
-    current_dir = os.path.join("datasets", dataset)
+    current_dir = os.path.join("../datasets", dataset)
 
     if len(os.listdir(current_dir)) == 1:
         first_dir = os.path.join(current_dir, os.listdir(current_dir)[0])
