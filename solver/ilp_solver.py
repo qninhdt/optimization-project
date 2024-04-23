@@ -15,10 +15,10 @@ class ILPSolver(BaseSolver):
         n_variables = sample["n_variables"]
         n_clauses = sample["n_clauses"]
         clauses = sample["clauses"]
-
-        print(f"Number of variables: {n_variables}")
-        print(f"Number of clauses: {n_clauses}")
-        print(f"Clauses: {clauses}")
+        #
+        # print(f"Number of variables: {n_variables}")
+        # print(f"Number of clauses: {n_clauses}")
+        # print(f"Clauses: {clauses}")
 
         g = nx.Graph()
         for i in range(0, len(clauses)):
@@ -37,7 +37,7 @@ class ILPSolver(BaseSolver):
                             v = (i2, j2)
                             g.add_edge(u, v)
 
-        print("Graph created with edges: ", g.edges)
+        # print("Graph created with edges: ", g.edges)
         n_nodes = len(g.nodes)
         n_edges = len(g.edges)
 
@@ -49,19 +49,19 @@ class ILPSolver(BaseSolver):
             var_map[("x", u)] = solver.IntVar(0, 1, "x_{}".format(u))
         for u in g.nodes:
             solver.Add(sum([var_map[("x", v)] for v in g.neighbors(u)]) <= d1 * (1 - var_map[("x", u)]))
-            print("sum({}) <= d1 * (1 - {})".format([("x", v) for v in g.neighbors(u)], ("x", u)))
+            # print("sum({}) <= d1 * (1 - {})".format([("x", v) for v in g.neighbors(u)], ("x", u)))
         # for u in g.nodes:
         #     solver.Add(sum([var_map[("x", v)] for v in g.neighbors(u)]) <= 1 + d2 * var_map[("x", u)])
         #     print("sum({}) <= 1 + d2 * {}".format([("x", v) for v in g.neighbors(u)], ("x", u)))
         solver.Maximize(sum([var_map[("x", u)] for u in g.nodes]))
-        print("Maximizing: sum({})".format([("x", u) for u in g.nodes]))
+        # print("Maximizing: sum({})".format([("x", u) for u in g.nodes]))
         status = solver.Solve()
         if status == pywraplp.Solver.OPTIMAL:
-            for u in g.nodes:
-                print("x_{} = ".format(u), var_map[("x", u)].solution_value())
+            # for u in g.nodes:
+            #     print("x_{} = ".format(u), var_map[("x", u)].solution_value())
             solution = [u for u in g.nodes if var_map[("x", u)].solution_value() == 1]
-            print("Solution: ", solution)
-            print("Optimal value found: ", solver.Objective().Value())
+            # print("Solution: ", solution)
+            # print("Optimal value found: ", solver.Objective().Value())
             sat_solution_raw = [clauses[u[0]][u[1]] for u in solution]
             sat_solution = []
             for i in range(1, n_variables + 1):
