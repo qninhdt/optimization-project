@@ -7,9 +7,9 @@ from itertools import combinations
 class ILPSolver(BaseSolver):
     def __init__(self, **kwargs):
         self.solver = pywraplp.Solver.CreateSolver('SCIP')
-        self.solver.EnableOutput()
+        # self.solver.EnableOutput()
         self.solver.SetNumThreads(1)
-        self.solver.SetTimeLimit(60000)
+        self.solver.SetTimeLimit(300000)
 
     def solve(self, sample):
         n_variables = sample["n_variables"]
@@ -43,12 +43,12 @@ class ILPSolver(BaseSolver):
 
         solver = self.solver
         var_map = {}
-        d1 = n_nodes - 1
-        d2 = n_nodes - 2
+        # d1 = n_nodes - 1
+        # d2 = n_nodes - 2
         for u in g.nodes:
             var_map[("x", u)] = solver.IntVar(0, 1, "x_{}".format(u))
         for u in g.nodes:
-            solver.Add(sum([var_map[("x", v)] for v in g.neighbors(u)]) <= d1 * (1 - var_map[("x", u)]))
+            solver.Add(sum([var_map[("x", v)] for v in g.neighbors(u)]) <= len(g.adj[u]) * (1 - var_map[("x", u)]))
             # print("sum({}) <= d1 * (1 - {})".format([("x", v) for v in g.neighbors(u)], ("x", u)))
         # for u in g.nodes:
         #     solver.Add(sum([var_map[("x", v)] for v in g.neighbors(u)]) <= 1 + d2 * var_map[("x", u)])
@@ -66,11 +66,13 @@ class ILPSolver(BaseSolver):
             sat_solution = []
             for i in range(1, n_variables + 1):
                 if -i in sat_solution_raw:
-                    sat_solution.append(-i)
+                    sat_solution.append(False)
                 else:
-                    sat_solution.append(i)
-            print("SAT solution: ", sat_solution)
+                    sat_solution.append(True)
+            # print("SAT solution: ", sat_solution)
             return sat_solution
+        else:
+            return [False] * n_variables
 
 
 
