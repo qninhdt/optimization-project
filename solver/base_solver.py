@@ -65,7 +65,7 @@ class BaseSolver:
     def solve_dataset(self, dataset: Dict) -> List[List[bool]]:
         print(f"> Solving dataset {dataset['name']}")
         solutions = []
-        durations = 0
+        times = []
 
         solved = 0
         for sample in dataset["samples"]:
@@ -75,7 +75,7 @@ class BaseSolver:
             end = timer()
 
             duration = end - start
-            durations += duration
+            times.append(duration)
 
             n_valid_clauses = self.count_satisfied_clauses(sample, solution)
 
@@ -93,6 +93,21 @@ class BaseSolver:
 
             solutions.append(solution)
 
+        total_time = sum(times)
+
         print(
-            f"> Solved {solved}/{dataset['n_samples']} samples in dataset {dataset['name']} in {durations:.4f}s, average {durations/dataset['n_samples']:.4f}s per sample"
+            f"> Solved {solved}/{dataset['n_samples']} samples in dataset {dataset['name']} in {total_time:.4f}s, average {total_time/dataset['n_samples']:.4f}s per sample"
         )
+
+        # compute median
+        times_ = sorted(times)
+        median_time = times_[len(times_) // 2]
+
+        return {
+            "dataset": dataset["name"],
+            "solutions": solutions,
+            "times": times,
+            "total_time": total_time,
+            "average_time": total_time / dataset["n_samples"],
+            "median_time": median_time,
+        }
