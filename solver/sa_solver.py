@@ -10,8 +10,17 @@ from dimod.binary import BinaryQuadraticModel
 class SASolver(BaseSolver):
     def __init__(self, **kwargs):
         self.solver = SimulatedAnnealingSampler()
+        self.q = defaultdict(int)
+        self.var_map = {}
+        self.var_cnt = 0
+        self.offset = 0
 
     def solve(self, sample):
+        self.q = defaultdict(int)
+        self.var_map = {}
+        self.var_cnt = 0
+        self.offset = 0
+
         n_variables = sample["n_variables"]
         n_clauses = sample["n_clauses"]
         clauses = sample["clauses"]
@@ -20,66 +29,20 @@ class SASolver(BaseSolver):
         # print(f"Number of clauses: {n_clauses}")
         # print(f"Clauses: {clauses}")
 
-        g = nx.Graph()
-        for i in range(0, len(clauses)):
-            clause = clauses[i]
-            for j1 in range(0, 3):
-                for j2 in range(j1 + 1, 3):
-                    u = (i, j1)
-                    v = (i, j2)
-                    g.add_edge(u, v)
-        for i1 in range(0, len(clauses)):
-            for j1 in range(0, 3):
-                for i2 in range(i1 + 1, len(clauses)):
-                    for j2 in range(0, 3):
-                        if clauses[i1][j1] == -clauses[i2][j2]:
-                            u = (i1, j1)
-                            v = (i2, j2)
-                            g.add_edge(u, v)
+        for i in range(n_variables):
+            self.var_map[("x", i + 1)] = i
+            self.var_cnt += 1
+        for clause in clauses:
+            self.add_clause(*clause)
 
-        # print("Graph created with edges: ", g.edges)
-        n_nodes = len(g.nodes)
-        n_edges = len(g.edges)
-
-        solver = self.solver
-        var_map = {}
-        var_cnt = 0
-        q = defaultdict(int)
-        for u in g.nodes:
-            var_map[("x", u)] = var_cnt
-            var_cnt += 1
-
-        # Constraint
-        # gamma = n_edges // n_nodes + 5
-        gamma = 3
-        for (u, v) in g.edges:
-            q[(var_map[("x", u)], var_map[("x", v)])] += gamma
-
-        # Objective Function
-        gamma = 1
-        for u in g.nodes:
-            q[(var_map[("x", u)], var_map[("x", u)])] -= gamma
-
-        bqm = BinaryQuadraticModel.from_qubo(q)
+        bqm = BinaryQuadraticModel.from_qubo(self.q)
         response = self.solve_simulated_annealing(bqm)
         sample = response.first.sample
         energy = response.first.energy
-        print("Energy: ", energy)
-        sample_sum = np.sum([sample[i] for i in range(n_nodes)])
-        if sample_sum >= n_clauses:
-            solution = [u for u in g.nodes if sample[var_map[("x", u)]] == 1]
-            # print("Solution: ", solution)
-            # print("Optimal value found: ", sum)
-            sat_solution_raw = [clauses[u[0]][u[1]] for u in solution]
-            sat_solution = []
-            for i in range(1, n_variables + 1):
-                if -i in sat_solution_raw:
-                    sat_solution.append(False)
-                else:
-                    sat_solution.append(True)
-            # print("SAT solution: ", sat_solution)
-            return sat_solution
-        return [False] * n_variables
+        print("Energy: ", energy + self.offset)
+        sat_solution = [bool(sample[self.var_map[("x", i + 1)]] == 1) for i in range(n_variables)]
+        # print("SAT solution: ", sat_solution)
+        return sat_solution
 
     def solve_simulated_annealing(self, bqm, method="?_", num_reads=1000):
         sampler = SimulatedAnnealingSampler()
@@ -108,3 +71,70 @@ class SASolver(BaseSolver):
         # with open(output_dir + solver_config + "_1.json", "w") as f:
         #     json.dump(config_dict, f, indent=4)
         return response
+
+    def add_clause(self, a, b, c, gamma=1):
+        val_a = abs(a)
+        val_b = abs(b)
+        val_c = abs(c)
+        self.var_map[("s", self.var_cnt)] = self.var_cnt
+        if a > 0 and b > 0 and c > 0:
+            # - c + ab - as - bs - cs
+            self.q[self.var_map[("x", val_c)], self.var_map[("x", val_c)]] -= gamma
+            self.q[self.var_map[("x", val_a)], self.var_map[("x", val_b)]] += gamma
+            self.q[self.var_map[("x", val_a)], self.var_map[("s", self.var_cnt)]] -= gamma
+            self.q[self.var_map[("x", val_b)], self.var_map[("s", self.var_cnt)]] -= gamma
+            self.q[self.var_map[("x", val_c)], self.var_map[("s", self.var_cnt)]] += gamma
+            self.offset += gamma
+        elif a > 0 and b > 0 and c < 0:
+            # + c + ab - as - bs - cs + s
+            self.q[self.var_map[("x", val_c)], self.var_map[("x", val_c)]] += gamma
+            self.q[self.var_map[("x", val_a)], self.var_map[("x", val_b)]] += gamma
+            self.q[self.var_map[("x", val_a)], self.var_map[("s", self.var_cnt)]] -= gamma
+            self.q[self.var_map[("x", val_b)], self.var_map[("s", self.var_cnt)]] -= gamma
+            self.q[self.var_map[("x", val_c)], self.var_map[("s", self.var_cnt)]] -= gamma
+            self.q[self.var_map[("s", self.var_cnt)], self.var_map[("s", self.var_cnt)]] += gamma
+        elif a > 0 and b < 0 and c > 0:
+            # + b - bc - as - bs + cs + s
+            self.q[self.var_map[("x", val_b)], self.var_map[("x", val_b)]] += gamma
+            self.q[self.var_map[("x", val_b)], self.var_map[("x", val_c)]] -= gamma
+            self.q[self.var_map[("x", val_a)], self.var_map[("s", self.var_cnt)]] -= gamma
+            self.q[self.var_map[("x", val_b)], self.var_map[("s", self.var_cnt)]] -= gamma
+            self.q[self.var_map[("x", val_c)], self.var_map[("s", self.var_cnt)]] += gamma
+            self.q[self.var_map[("s", self.var_cnt)], self.var_map[("s", self.var_cnt)]] += gamma
+        elif a < 0 and b > 0 and c > 0:
+            # + a - ac - as - bs + cs + s
+            self.q[self.var_map[("x", val_a)], self.var_map[("x", val_a)]] += gamma
+            self.q[self.var_map[("x", val_a)], self.var_map[("x", val_c)]] -= gamma
+            self.q[self.var_map[("x", val_a)], self.var_map[("s", self.var_cnt)]] -= gamma
+            self.q[self.var_map[("x", val_b)], self.var_map[("s", self.var_cnt)]] -= gamma
+            self.q[self.var_map[("x", val_c)], self.var_map[("s", self.var_cnt)]] += gamma
+            self.q[self.var_map[("s", self.var_cnt)], self.var_map[("s", self.var_cnt)]] += gamma
+        elif a > 0 and b < 0 and c < 0:
+            # +bc - as - bs - cs + 2s
+            self.q[self.var_map[("x", val_b)], self.var_map[("x", val_c)]] += gamma
+            self.q[self.var_map[("x", val_a)], self.var_map[("s", self.var_cnt)]] -= gamma
+            self.q[self.var_map[("x", val_b)], self.var_map[("s", self.var_cnt)]] -= gamma
+            self.q[self.var_map[("x", val_c)], self.var_map[("s", self.var_cnt)]] -= gamma
+            self.q[self.var_map[("s", self.var_cnt)], self.var_map[("s", self.var_cnt)]] += 2 * gamma
+        elif a < 0 and b > 0 and c < 0:
+            # +ac - as - bs - cs + 2s
+            self.q[self.var_map[("x", val_a)], self.var_map[("x", val_c)]] += gamma
+            self.q[self.var_map[("x", val_a)], self.var_map[("s", self.var_cnt)]] -= gamma
+            self.q[self.var_map[("x", val_b)], self.var_map[("s", self.var_cnt)]] -= gamma
+            self.q[self.var_map[("x", val_c)], self.var_map[("s", self.var_cnt)]] -= gamma
+            self.q[self.var_map[("s", self.var_cnt)], self.var_map[("s", self.var_cnt)]] += 2 * gamma
+        elif a < 0 and b < 0 and c > 0:
+            # +ab - as - bs - cs + 2s
+            self.q[self.var_map[("x", val_a)], self.var_map[("x", val_b)]] += gamma
+            self.q[self.var_map[("x", val_a)], self.var_map[("s", self.var_cnt)]] -= gamma
+            self.q[self.var_map[("x", val_b)], self.var_map[("s", self.var_cnt)]] -= gamma
+            self.q[self.var_map[("x", val_c)], self.var_map[("s", self.var_cnt)]] -= gamma
+            self.q[self.var_map[("s", self.var_cnt)], self.var_map[("s", self.var_cnt)]] += 2 * gamma
+        elif a < 0 and b < 0 and c < 0:
+            # +ab - as - bs + cs + s
+            self.q[self.var_map[("x", val_a)], self.var_map[("x", val_b)]] += gamma
+            self.q[self.var_map[("x", val_a)], self.var_map[("s", self.var_cnt)]] -= gamma
+            self.q[self.var_map[("x", val_b)], self.var_map[("s", self.var_cnt)]] -= gamma
+            self.q[self.var_map[("x", val_c)], self.var_map[("s", self.var_cnt)]] += gamma
+            self.q[self.var_map[("s", self.var_cnt)], self.var_map[("s", self.var_cnt)]] += gamma
+        self.var_cnt += 1

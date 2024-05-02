@@ -2,21 +2,21 @@
     "dataset": "uf3-3",
     "solutions": [
         [
-            false,
-            false,
-            false
+            true,
+            true,
+            true
         ],
         [
             false,
-            false,
+            true,
             false
         ]
     ],
     "times": [
-        0.019011299998965114,
-        0.017004400004225317
+        0.009987800003727898,
+        0.00914750000811182
     ],
-    "total_time": 0.03601570000319043,
-    "average_time": 0.018007850001595216,
-    "median_time": 0.019011299998965114
+    "total_time": 0.019135300011839718,
+    "average_time": 0.009567650005919859,
+    "median_time": 0.009987800003727898
 }
