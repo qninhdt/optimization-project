@@ -1,0 +1,22 @@
+{
+    "dataset": "uf3-3",
+    "solutions": [
+        [
+            true,
+            true,
+            true
+        ],
+        [
+            true,
+            false,
+            true
+        ]
+    ],
+    "times": [
+        6.4653235000005225,
+        5.105674100006581
+    ],
+    "total_time": 11.570997600007104,
+    "average_time": 5.785498800003552,
+    "median_time": 6.4653235000005225
+}

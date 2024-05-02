@@ -1,13 +1,14 @@
-from solver import GradientDescentSolver
+from solver import GradientDescentSolver, ILPSolver, SASolver, QASolver
 from dataset import load_dataset
 import json
 import os
 
 # Load dataset
 DATASETS = [
+    # "uf3-3",
     "uf20-91",
-    "uf50-218",
-    "uf75-325",
+    # "uf50-218",
+    # "uf75-325",
 ]
 
 MAX_SAMPLES = 100
@@ -33,5 +34,5 @@ def run_experiment(solver, dataset_name: str):
 
 
 for dataset_name in DATASETS:
-    solver = GradientDescentSolver()
+    solver = QASolver()
     run_experiment(solver, dataset_name)
