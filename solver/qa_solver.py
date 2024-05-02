@@ -3,6 +3,7 @@ import networkx as nx
 import numpy as np
 from dwave.embedding.chain_strength import uniform_torque_compensation
 from dwave.system import EmbeddingComposite, DWaveSampler
+from dwave.cloud.config import load_config
 import dwave.inspector
 
 from solver import BaseSolver
@@ -11,6 +12,7 @@ from dimod.binary import BinaryQuadraticModel
 
 class QASolver(BaseSolver):
     def __init__(self, **kwargs):
+        load_config("./dwave.conf")
         self.q = defaultdict(int)
         self.var_map = {}
         self.var_cnt = 0
@@ -131,7 +133,7 @@ class QASolver(BaseSolver):
         # file_response_output.write("Info: " + str(response.info["timing"]) + "\n")
         # file_response_output.write("Embedding Info: " + str(response.info["embedding_context"]) + "\n")
 
-        dwave.inspector.show(response)
+        # dwave.inspector.show(response)
         return response
 
     def add_clause(self, a, b, c, gamma=1):
