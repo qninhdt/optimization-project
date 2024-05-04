@@ -1,3 +1,4 @@
+import time
 from collections import defaultdict
 import networkx as nx
 import numpy as np
@@ -17,6 +18,8 @@ class QASolver(BaseSolver):
         self.var_map = {}
         self.var_cnt = 0
         self.offset = 0
+        self.tf = 0
+        self.tts = 0
         # self.solver = ()
 
     def solve(self, sample):
@@ -24,6 +27,8 @@ class QASolver(BaseSolver):
         self.var_map = {}
         self.var_cnt = 0
         self.offset = 0
+        self.tf = 0
+        self.tts = 0
 
         n_variables = sample["n_variables"]
         n_clauses = sample["n_clauses"]
@@ -46,6 +51,12 @@ class QASolver(BaseSolver):
         print("Energy: ", energy + self.offset)
         sat_solution = [bool(sample[self.var_map[("x", i + 1)]] == 1) for i in range(n_variables)]
         # print("SAT solution: ", sat_solution)
+        opt_rate = sum(
+            [response.record.energy[i] + self.offset == 0 for i in range(len(response.record.energy))]) / len(
+            response.record.energy)
+        # print("Optimal rate: ", opt_rate)
+        self.tts = self.tf * 0.01 / (1 - opt_rate)
+        print("TTS: ", self.tts)
         return sat_solution
 
     def solve_quantum_annealing(self, bqm,
@@ -80,7 +91,7 @@ class QASolver(BaseSolver):
         #     raise RuntimeError(e)
         sampler = EmbeddingComposite(DWaveSampler())
 
-        # start = time.time()
+        start = time.time()
         if anneal_schedule_id == -1:
             response = sampler.sample(bqm=bqm,
                                       chain_strength=chain_strength,
@@ -95,7 +106,8 @@ class QASolver(BaseSolver):
                                       label=solver_config,
                                       # annealing_time=annealing_time,
                                       anneal_schedule=schedule)
-        # end = time.time()
+        end = time.time()
+        self.tf = end - start
         # dwave.inspector.show(response)
         # chains = response.info["embedding_context"]["embedding"].values()
         # for chain in chains:
@@ -202,3 +214,6 @@ class QASolver(BaseSolver):
             self.q[self.var_map[("x", val_c)], self.var_map[("s", self.var_cnt)]] += gamma
             self.q[self.var_map[("s", self.var_cnt)], self.var_map[("s", self.var_cnt)]] += gamma
         self.var_cnt += 1
+
+    def get_tts(self):
+        return self.tts

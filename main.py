@@ -6,9 +6,9 @@ import os
 # Load dataset
 DATASETS = [
     # "uf3-3",
-    "uf20-91",
+    # "uf20-91",
     # "uf50-218",
-    # "uf75-325",
+    "uf75-325",
 ]
 
 MAX_SAMPLES = 100
@@ -34,5 +34,5 @@ def run_experiment(solver, dataset_name: str):
 
 
 for dataset_name in DATASETS:
-    solver = QASolver()
+    solver = SASolver()
     run_experiment(solver, dataset_name)

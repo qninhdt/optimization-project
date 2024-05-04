@@ -1,3 +1,4 @@
+import time
 from collections import defaultdict
 import networkx as nx
 import numpy as np
@@ -14,12 +15,16 @@ class SASolver(BaseSolver):
         self.var_map = {}
         self.var_cnt = 0
         self.offset = 0
+        self.tf = 0
+        self.tts = 0
 
     def solve(self, sample):
         self.q = defaultdict(int)
         self.var_map = {}
         self.var_cnt = 0
         self.offset = 0
+        self.tf = 0
+        self.tts = 0
 
         n_variables = sample["n_variables"]
         n_clauses = sample["n_clauses"]
@@ -42,6 +47,12 @@ class SASolver(BaseSolver):
         print("Energy: ", energy + self.offset)
         sat_solution = [bool(sample[self.var_map[("x", i + 1)]] == 1) for i in range(n_variables)]
         # print("SAT solution: ", sat_solution)
+        opt_rate = sum(
+            [response.record.energy[i] + self.offset == 0 for i in range(len(response.record.energy))]) / len(
+            response.record.energy)
+        # print("Optimal rate: ", opt_rate)
+        self.tts = self.tf * 0.01 / (1 - opt_rate)
+        print("TTS: ", self.tts)
         return sat_solution
 
     def solve_simulated_annealing(self, bqm, method="?_", num_reads=1000):
@@ -56,13 +67,14 @@ class SASolver(BaseSolver):
         # if not os.path.exists(output_dir):
         #     os.makedirs(output_dir)
         # print(config)
-        # start = time.time()
+        start = time.time()
         response = sampler.sample(bqm,
                                   num_reads=num_reads,
                                   label=solver_config,
                                   # beta_range=beta_range,
                                   num_sweeps=num_sweeps)
-        # end = time.time()
+        end = time.time()
+        self.tf = end - start
         # config_dict = {
         #     "config": solver_config,
         #     "num_vars": len(bqm.variables),
@@ -138,3 +150,6 @@ class SASolver(BaseSolver):
             self.q[self.var_map[("x", val_c)], self.var_map[("s", self.var_cnt)]] += gamma
             self.q[self.var_map[("s", self.var_cnt)], self.var_map[("s", self.var_cnt)]] += gamma
         self.var_cnt += 1
+
+    def get_tts(self):
+        return self.tts
