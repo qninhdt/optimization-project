@@ -6,9 +6,9 @@ import os
 # Load dataset
 DATASETS = [
     # "uf3-3",
-    # "uf20-91",
+    "uf20-91",
     # "uf50-218",
-    "uf75-325",
+    # "uf75-325",
 ]
 
 MAX_SAMPLES = 100

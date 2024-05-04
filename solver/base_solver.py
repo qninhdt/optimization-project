@@ -103,6 +103,9 @@ class BaseSolver:
         times_ = sorted(times)
         median_time = times_[len(times_) // 2]
 
+        def get_tts(self) -> float:
+            pass
+
         return {
             "dataset": dataset["name"],
             "solutions": solutions,
@@ -110,4 +113,5 @@ class BaseSolver:
             "total_time": total_time,
             "average_time": total_time / dataset["n_samples"],
             "median_time": median_time,
+            "tts": self.get_tts(),
         }
